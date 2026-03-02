@@ -6,7 +6,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('❌ Faltan las credenciales de Supabase en el archivo .env')
+    console.error('❌ Faltan las credenciales de Supabase en el archivo .env o en las variables de entorno de Vercel.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Solo crear el cliente si existen las credenciales para evitar crashes
+export const supabase = (supabaseUrl && supabaseAnonKey)
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : {
+        auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }) },
+        from: () => ({ select: () => ({ eq: () => ({ single: () => ({ data: null, error: 'Faltan credenciales' }) }) }) })
+    } // Minimal fallback to prevent top-level crashes
