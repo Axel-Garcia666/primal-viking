@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { useProfile } from '../../hooks/useProfile'
+import { useProfile } from '../../contexts/ProfileContext'
 import { useRef } from 'react'
 
 const NAV_ITEMS = [

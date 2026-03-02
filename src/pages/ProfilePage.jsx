@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Save, User, Mail, Calendar, Key, Loader } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { useProfile } from '../hooks/useProfile'
+import { useProfile } from '../contexts/ProfileContext'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 

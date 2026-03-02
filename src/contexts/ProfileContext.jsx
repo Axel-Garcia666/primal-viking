@@ -1,24 +1,22 @@
-import { useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from './AuthContext'
 import toast from 'react-hot-toast'
 
-export function useProfile() {
+const ProfileContext = createContext()
+
+export function ProfileProvider({ children }) {
     const { user } = useAuth()
     const [profile, setProfile] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
+    const fetchProfile = useCallback(async () => {
         if (!user) {
             setProfile(null)
             setLoading(false)
             return
         }
 
-        fetchProfile()
-    }, [user])
-
-    const fetchProfile = async () => {
         try {
             setLoading(true)
             const { data, error } = await supabase
@@ -28,6 +26,10 @@ export function useProfile() {
                 .single()
 
             if (error && error.code !== 'PGRST116') {
+                // If the error is that full_name doesn't exist, we'll handle it gracefully
+                if (error.message?.includes('full_name')) {
+                    console.warn('Database column full_name missing. User needs to run SQL.')
+                }
                 throw error
             }
 
@@ -35,14 +37,23 @@ export function useProfile() {
                 setProfile(data)
             } else {
                 // Si no existe, crear un perfil vacío
-                await supabase.from('profiles').insert([{ id: user.id }])
+                const { data: newData, error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([{ id: user.id }])
+                    .select()
+                    .single()
+                if (!insertError) setProfile(newData)
             }
         } catch (error) {
             console.error('Error cargando el perfil:', error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [user])
+
+    useEffect(() => {
+        fetchProfile()
+    }, [fetchProfile])
 
     const uploadAvatar = async (file) => {
         if (!user) return
@@ -74,8 +85,8 @@ export function useProfile() {
 
             if (updateError) throw updateError
 
-            // Actualizar estado local
-            setProfile({ avatar_url: publicUrl })
+            // Actualizar estado local sincronizado
+            setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
             toast.success('Foto de perfil actualizada', { id: 'uploadAvatar' })
 
         } catch (error) {
@@ -108,5 +119,17 @@ export function useProfile() {
         }
     }
 
-    return { profile, loading, uploadAvatar, updateProfile }
+    return (
+        <ProfileContext.Provider value={{ profile, loading, uploadAvatar, updateProfile, refreshProfile: fetchProfile }}>
+            {children}
+        </ProfileContext.Provider>
+    )
+}
+
+export function useProfile() {
+    const context = useContext(ProfileContext)
+    if (!context) {
+        throw new Error('useProfile debe usarse dentro de un ProfileProvider')
+    }
+    return context
 }

@@ -41,7 +41,8 @@ CREATE INDEX IF NOT EXISTS tasks_created_at_idx ON tasks(created_at DESC);
 -- ==========================================================
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  avatar_url TEXT
+  avatar_url TEXT,
+  full_name TEXT
 );
 
 -- Row Level Security para Perfiles
